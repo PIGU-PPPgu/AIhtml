@@ -1,0 +1,2317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>线性规划教学可视化系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        body { 
+            font-family: 'Microsoft YaHei', sans-serif; 
+            margin: 0; 
+            padding: 0;
+            background: #f0f2f5; 
+        }
+        
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .app-header {
+            background: #1890ff;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .app-header h2 {
+            margin: 0;
+            font-size: 22px;
+        }
+        
+        .app-content {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 20px;
+        }
+        
+        .task-navigator {
+            background: white;
+            border-radius: 8px;
+            padding: 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .task-header {
+            background: #f9f9f9;
+            padding: 12px 20px;
+            font-weight: bold;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .task-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .task-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: background 0.3s;
+        }
+        
+        .task-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .task-item.active {
+            background: #e6f7ff;
+            border-left: 3px solid #1890ff;
+        }
+        
+        .task-item .task-number {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .task-item.active .task-number {
+            background: #1890ff;
+            color: white;
+        }
+        
+        .task-item .task-title {
+            font-weight: 500;
+        }
+        
+        .task-item .task-status {
+            margin-left: auto;
+            font-size: 14px;
+            color: #999;
+        }
+        
+        .task-item.completed .task-status {
+            color: #52c41a;
+        }
+        
+        .module-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        
+        .module-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .module-header h3 {
+            margin: 0;
+            color: #222;
+        }
+        
+        .task-content {
+            display: none;
+        }
+        
+        .task-content.active {
+            display: block;
+        }
+        
+        .chart-container {
+            height: 600px;
+            border-radius: 8px;
+            overflow: visible; /* 从hidden改为visible，确保图表内容不被裁剪 */
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            position: relative;
+            z-index: 10; /* 确保图表优先级高 */
+            background: white;
+            margin-bottom: 20px;
+        }
+        
+        #chart {
+            width: 100%;
+            height: 100%;
+            min-height: 500px; /* 设置最小高度确保图表可见 */
+            position: relative;
+            z-index: 15; /* 确保图表内容在最上层 */
+        }
+        
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+        }
+        
+        /* 美化现有组件 */
+        .food-selection {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .food-chip {
+            padding: 8px 15px;
+            font-size: 14px;
+            border-radius: 20px;
+            background: #f0f0f0;
+            cursor: pointer;
+            transition: all 0.3s;
+            user-select: none;
+        }
+        
+        .food-chip:hover {
+            background: #e6f7ff;
+        }
+        
+        .food-chip.selected {
+            background: #1890ff;
+            color: white;
+        }
+        
+        input[type="range"] {
+            height: 6px;
+            border-radius: 3px;
+            width: 100%;
+            max-width: 350px;
+        }
+        
+        input[type="number"] {
+            width: 70px;
+            padding: 6px 8px;
+            border-radius: 4px;
+            border: 1px solid #d9d9d9;
+        }
+        
+        select {
+            padding: 10px 12px;
+            font-size: 15px;
+            border-radius: 4px;
+            border: 1px solid #d9d9d9;
+            min-width: 200px;
+        }
+        
+        .equation-panel, .food-data-panel {
+            margin-top: 20px;
+            border-radius: 8px;
+            background: #f9f9f9;
+            padding: 15px;
+        }
+        
+        .math-eq {
+            padding: 12px;
+            font-family: "Times New Roman", serif;
+            font-style: italic;
+        }
+        
+        /* 新增：教学指导按钮和面板样式 */
+        .tutorial-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #1890ff;
+            color: white;
+            font-size: 24px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            cursor: pointer;
+            z-index: 1000;
+            transition: transform 0.3s, background 0.3s;
+        }
+        
+        .tutorial-btn:hover {
+            background: #40a9ff;
+            transform: scale(1.1);
+        }
+        
+        .tutorial-panel {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 400px;
+            max-height: 500px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 3px 20px rgba(0,0,0,0.15);
+            padding: 20px;
+            z-index: 999;
+            display: none;
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .tutorial-panel h3 {
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            color: #1890ff;
+        }
+        
+        .tutorial-step {
+            display: none;
+            margin-bottom: 15px;
+        }
+        
+        .tutorial-step.active {
+            display: block;
+            animation: fadeIn 0.4s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .tutorial-step h4 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .tutorial-step p {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .tutorial-step button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            margin-right: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .tutorial-step button:hover {
+            background: #40a9ff;
+        }
+        
+        /* 通用按钮样式 */
+        button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        button:hover {
+            background: #40a9ff;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+        }
+        
+        button:disabled {
+            background: #d9d9d9;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        /* 结果面板样式 */
+        .result-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            transition: all 0.3s;
+            font-size: 13px;
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            max-width: 250px;
+            z-index: 20; /* 确保结果面板在图表上方但不完全遮挡 */
+            border: 1px solid #e8e8e8;
+            background-color: rgba(255, 255, 255, 0.95); /* 半透明背景 */
+        }
+        
+        .result-panel h3 {
+            margin-top: 0;
+            color: #1890ff;
+            font-size: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .result-panel p {
+            margin: 6px 0;
+            line-height: 1.5;
+        }
+        
+        .result-panel p b {
+            color: #333;
+        }
+        
+        /* 加载提示样式 */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            z-index: 100;
+            font-size: 14px;
+            display: none;
+        }
+        
+        /* 食品表格样式 */
+        .food-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .food-table th, .food-table td {
+            padding: 10px;
+            border: 1px solid #f0f0f0;
+            text-align: center;
+        }
+        
+        .food-table th {
+            background: #f9f9f9;
+            font-weight: 500;
+        }
+        
+        .food-table tr {
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .food-table tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .food-table tr.selected {
+            background: #e6f7ff;
+        }
+        
+        /* 优化控制面板样式 */
+        .control-item {
+            margin-bottom: 15px;
+            max-width: 350px;
+        }
+        
+        .control-item label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .slider-container input[type="range"] {
+            flex: 1;
+        }
+        
+        /* 面板高亮效果 */
+        .highlight-update {
+            animation: panel-flash 0.6s;
+        }
+        
+        @keyframes panel-flash {
+            0% { box-shadow: 0 0 0 rgba(24, 144, 255, 0); }
+            30% { box-shadow: 0 0 20px rgba(24, 144, 255, 0.8); background-color: #e6f7ff; }
+            100% { box-shadow: 0 0 0 rgba(24, 144, 255, 0); }
+        }
+        
+        /* 提示标签 */
+        .tip-label {
+            background: #ffe58f;
+            color: #874d00;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+        
+        /* 面板底部提示 */
+        .panel-tip {
+            margin-top: 10px;
+            padding-top: 5px;
+            border-top: 1px dashed #f0f0f0;
+            font-size: 11px;
+            color: #888;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="app-header">
+        <h2>🚀 线性规划教学可视化系统</h2>
+    </div>
+    
+    <div class="app-content">
+        <div class="controls-column">
+            <!-- 任务导航 -->
+            <div class="task-navigator">
+                <div class="task-header">学习任务</div>
+                <ul class="task-list">
+                    <li id="task1" class="task-item active">
+                        <div class="task-number">1</div>
+                        <div class="task-title">初识线性规划</div>
+                        <div class="task-status">进行中</div>
+                    </li>
+                    <li id="task2" class="task-item">
+                        <div class="task-number">2</div>
+                        <div class="task-title">设置约束条件</div>
+                        <div class="task-status">待完成</div>
+                    </li>
+                    <li id="task3" class="task-item">
+                        <div class="task-number">3</div>
+                        <div class="task-title">设定优化目标</div>
+                        <div class="task-status">待完成</div>
+                    </li>
+                    <li id="task4" class="task-item">
+                        <div class="task-number">4</div>
+                        <div class="task-title">可行域探索</div>
+                        <div class="task-status">待完成</div>
+                    </li>
+                    <li id="task5" class="task-item">
+                        <div class="task-number">5</div>
+                        <div class="task-title">寻找最优解</div>
+                        <div class="task-status">待完成</div>
+                    </li>
+                </ul>
+        </div>
+
+            <!-- 功能模块，根据任务显示/隐藏 -->
+            <div id="intro-module" class="module-container">
+                <div class="module-header">
+                    <h3>🍲 问题介绍</h3>
+                </div>
+                <p>线性规划问题是寻找满足一组约束条件下的最优解。本系统模拟了零食购买决策：</p>
+                <ul>
+                    <li>在预算限制下</li>
+                    <li>在热量限制下</li>
+                    <li>寻找最优的零食购买方案</li>
+                </ul>
+                <p>阅读完介绍后，请在下方选择两种零食进行优化分析。</p>
+            </div>
+
+            <div id="food-selection-module" class="module-container">
+                <div class="module-header">
+                    <h3>🥪 选择零食</h3>
+                </div>
+                <p>选择两种零食进行优化分析：</p>
+                <div class="food-selection">
+                    <!-- 零食选择区域由JavaScript动态生成 -->
+                </div>
+                <div class="button-group">
+                    <button onclick="confirmFoodSelection()" style="background:#52c41a;">确认选择</button>
+                    <button onclick="resetFoodSelection()" style="background:#ff4d4f;">重置选择</button>
+                    <button id="next-task-btn" onclick="nextTask()" style="background:#1890ff; display:none;">继续下一步</button>
+                </div>
+            </div>
+
+            <div id="constraint-module" class="module-container" style="display:none">
+                <div class="module-header">
+                    <h3>🔧 约束条件设置</h3>
+                </div>
+                <p>调整以下滑块来设置不同的预算和热量约束：</p>
+                <div class="control-item">
+                    <label for="budget">预算约束（元）</label>
+                    <div class="slider-container">
+                        <input type="range" id="budget" min="10" max="100" value="30" oninput="updateBudget(this.value)">
+                        <input type="number" id="budgetInput" min="10" max="100" value="30" onchange="updateBudget(this.value)">
+                    </div>
+                </div>
+                
+                <div class="control-item">
+                    <label for="calorie">热量上限（千卡）</label>
+                    <div class="slider-container">
+                        <input type="range" id="calorie" min="300" max="2000" value="800" oninput="updateCalorie(this.value)">
+                        <input type="number" id="calorieInput" min="300" max="2000" value="800" onchange="updateCalorie(this.value)">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button onclick="prevTask()">返回上一步</button>
+                    <button onclick="nextTask()" style="background:#52c41a;">继续下一步</button>
+                </div>
+            </div>
+            
+            <!-- 优化目标模块 -->
+            <div id="objective-module" class="module-container" style="display:none">
+                <div class="module-header">
+                    <h3>🎯 设定优化目标</h3>
+                </div>
+                <p>选择您想要优化的目标：</p>
+                <div class="control-item">
+                    <select id="objective" onchange="updateUI()">
+                        <option value="maxCalorie">最大化热量</option>
+                        <option value="minCost">最小化成本</option>
+                        <option value="maxNutrition">最大化营养</option>
+            </select>
+                </div>
+                <p>优化目标将决定最优解的选择标准。</p>
+                <div class="button-group">
+                    <button onclick="prevTask()">返回上一步</button>
+                    <button onclick="nextTask()" style="background:#52c41a;">继续下一步</button>
+                </div>
+        </div>
+
+            <!-- 可行域分析模块 -->
+            <div id="feasible-region-module" class="module-container" style="display:none">
+                <div class="module-header">
+                    <h3>🗺️ 可行域分析</h3>
+            </div>
+                <p>可行域是满足所有约束条件的区域（图中绿色区域）。</p>
+                <p>可行域的顶点是找出最优解的关键。</p>
+                <div class="button-group">
+                    <button onclick="toggleVertex()" id="vertexBtn">🧭 显示顶点坐标</button>
+                    <button onclick="prevTask()">返回上一步</button>
+                    <button onclick="nextTask()" style="background:#52c41a;">继续下一步</button>
+        </div>
+    </div>
+
+            <!-- 最优解分析模块 -->
+            <div id="optimal-solution-module" class="module-container" style="display:none">
+                <div class="module-header">
+                    <h3>🏆 最优解分析</h3>
+                </div>
+                <p>线性规划的基本原理：最优解总是出现在可行域的顶点上。</p>
+                <p>点击下方按钮，观察系统如何检验每个顶点，找出最优解。</p>
+                <div class="button-group">
+                    <button id="animateBtn" onclick="startAnimation()">▶️ 开始顶点检验</button>
+                    <button onclick="prevTask()">返回上一步</button>
+                    <button onclick="markTaskCompleted(4)" style="background:#52c41a;">完成学习</button>
+                </div>
+            </div>
+            
+            <!-- 控制面板 - 在最后一个任务中显示 -->
+            <div id="controlPanel" class="module-container" style="display:none">
+                <div class="module-header">
+                    <h3>🎮 控制面板</h3>
+                </div>
+                
+                <div class="control-item">
+                    <label for="budget">预算约束</label>
+                    <div class="slider-container">
+                        <input type="range" id="budget-control" min="10" max="100" value="30" oninput="updateBudget(this.value)">
+                        <input type="number" id="budgetInput-control" min="10" max="100" value="30" onchange="updateBudget(this.value)">
+                    </div>
+                </div>
+                
+                <div class="control-item">
+                    <label for="calorie">热量上限</label>
+                    <div class="slider-container">
+                        <input type="range" id="calorie-control" min="300" max="2000" value="800" oninput="updateCalorie(this.value)">
+                        <input type="number" id="calorieInput-control" min="300" max="2000" value="800" onchange="updateCalorie(this.value)">
+                    </div>
+                </div>
+                
+                <div class="control-item">
+                    <label for="objective-control">优化目标</label>
+                    <select id="objective-control" onchange="updateUI()">
+                        <option value="maxCalorie">最大化热量</option>
+                        <option value="minCost">最小化成本</option>
+                        <option value="maxNutrition">最大化营养</option>
+                    </select>
+                </div>
+                
+                <div class="button-group">
+                    <button id="vertexBtn-control" onclick="toggleVertex()">🧭 显示顶点坐标</button>
+                    <button id="animateBtn-control" onclick="startAnimation()">▶️ 开始顶点检验</button>
+                    <button id="objectiveLineBtn" onclick="toggleObjectiveLine()">显示目标函数线</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="visualization-column">
+            <!-- 图表容器 -->
+            <div id="chart-container" class="chart-container">
+    <div id="chart"></div>
+                <div class="loading" id="loadingTip">加载中...</div>
+                
+                <!-- 添加三种级别的结果面板 -->
+                <div id="result-panel-basic" class="result-panel" style="display:none;">
+                    <h3>基本信息</h3>
+                    <div id="resultContent-basic"></div>
+                </div>
+
+                <div id="result-panel-objective" class="result-panel" style="display:none; position: absolute; right: 20px; top: 70px; width: 250px; z-index: 100; background: rgba(255,255,255,0.9);">
+                    <h3>优化目标信息</h3>
+                    <div id="resultContent-objective"></div>
+                </div>
+
+                <div id="result-panel-full" class="result-panel" style="display:none; position: absolute; right: 20px; top: 70px; width: 250px; z-index: 100; background: rgba(255,255,255,0.9);">
+                    <h3>最优解分析</h3>
+                    <div id="resultContent-full"></div>
+                </div>
+            </div>
+            
+            <!-- 任务内容区 -->
+            <div id="content-task1" class="task-content active">
+                <div class="module-container">
+                    <div class="module-header">
+                        <h3>任务1：初识线性规划</h3>
+                    </div>
+                    <p>在这个任务中，您将了解线性规划问题的基本概念，并选择两种零食作为研究对象。</p>
+                    <ol>
+                        <li>阅读问题介绍，了解线性规划的概念</li>
+                        <li>从零食列表中选择两种您感兴趣的零食</li>
+                        <li>点击"确认选择"按钮确认您的选择</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <!-- 任务2内容 -->
+            <div id="content-task2" class="task-content">
+                <div class="module-container">
+                    <div class="module-header">
+                        <h3>任务2：设置约束条件</h3>
+                    </div>
+                    <p>在这个任务中，您将学习如何设置线性规划问题的约束条件。</p>
+                    <ol>
+                        <li>使用左侧滑块调整预算约束（${products.food1.price}x + ${products.food2.price}y ≤ 预算值）</li>
+                        <li>使用左侧滑块调整热量约束（${products.food1.calorie}x + ${products.food2.calorie}y ≤ 热量上限）</li>
+                        <li>观察右上角结果面板和图表中可行域的变化</li>
+                    </ol>
+                    <p>提示：试着调整约束条件，使可行域变大或变小。观察图表右上角的面板以了解当前状态。</p>
+                </div>
+            </div>
+            
+            <!-- 更新任务3内容 -->
+            <div id="content-task3" class="task-content">
+                <div class="module-container">
+                    <div class="module-header">
+                        <h3>任务3：设定优化目标</h3>
+                    </div>
+                    <p>在这个任务中，您将学习如何设定线性规划问题的优化目标。</p>
+                    <ol>
+                        <li>从左侧下拉菜单中选择不同的优化目标</li>
+                        <li>可以尝试三种不同的目标：最大化热量、最小化成本、最大化营养</li>
+                        <li>观察右上角结果面板中的信息变化</li>
+                    </ol>
+                    <p>思考：不同的优化目标会如何影响我们最终的决策？</p>
+                </div>
+            </div>
+            
+            <!-- 更新任务4内容 -->
+            <div id="content-task4" class="task-content">
+                <div class="module-container">
+                    <div class="module-header">
+                        <h3>任务4：可行域探索</h3>
+                    </div>
+                    <p>在这个任务中，您将深入了解可行域的特性。</p>
+                    <ol>
+                        <li>点击左侧"显示顶点坐标"按钮查看可行域的顶点</li>
+                        <li>仔细观察这些顶点的位置和坐标</li>
+                        <li>尝试调整约束条件，观察顶点如何变化</li>
+                    </ol>
+                    <p><b>重要概念</b>：线性规划的关键原理是最优解总是出现在可行域的顶点上。这意味着我们只需要检查所有顶点，就能找到最优解。</p>
+                </div>
+            </div>
+            
+            <!-- 更新任务5内容 -->
+            <div id="content-task5" class="task-content">
+                <div class="module-container">
+                    <div class="module-header">
+                        <h3>任务5：寻找最优解</h3>
+                    </div>
+                    <p>在这个任务中，您将了解如何在可行域的顶点中找出最优解。</p>
+                    <ol>
+                        <li>确保已显示顶点坐标</li>
+                        <li>点击左侧"开始顶点检验"按钮</li>
+                        <li>观察系统如何逐一检验每个顶点，最终找出最优解</li>
+                        <li>查看右上角结果面板中的详细信息</li>
+                    </ol>
+                    <p>探索：您能否预测最优解将出现在哪个顶点？然后点击"开始顶点检验"验证您的猜想。</p>
+                </div>
+            </div>
+            
+            <!-- 数学模型显示面板 -->
+            <div id="equation-module" class="module-container" style="display:none">
+                <div class="module-header">
+                    <h3>📊 数学模型</h3>
+                </div>
+                <div class="equation-panel">
+                    <p><b>变量定义：</b></p>
+                    <p>x: <span id="var1Name">牛奶</span>的数量</p>
+                    <p>y: <span id="var2Name">面包</span>的数量</p>
+                    
+                    <p><b>约束条件：</b></p>
+                    <div class="math-eq" id="budgetEq">5x + 3y ≤ 30 (预算约束)</div>
+                    <div class="math-eq" id="calorieEq">120x + 220y ≤ 800 (热量约束)</div>
+                    <div class="math-eq">x ≥ 0, y ≥ 0 (非负约束)</div>
+                    
+                    <p><b>目标函数：</b></p>
+                    <div class="math-eq" id="objectiveEq">最大化 Z = 120x + 220y (最大化热量)</div>
+                </div>
+            </div>
+            
+            <!-- 食品数据表格 -->
+            <div id="food-data-module" class="module-container" style="display:none">
+                <div class="module-header">
+                    <h3>🍎 零食数据</h3>
+                </div>
+                <div class="food-data-panel">
+                    <table class="food-table">
+                        <thead>
+                            <tr>
+                                <th>零食名称</th>
+                                <th>价格(元)</th>
+                                <th>热量(千卡)</th>
+                                <th>营养得分</th>
+                            </tr>
+                        </thead>
+                        <tbody id="foodTableBody">
+                            <!-- 表格内容会通过JavaScript动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 教学指导按钮和面板 -->
+<button class="tutorial-btn" onclick="toggleTutorial()">?</button>
+<div class="tutorial-panel" id="tutorialPanel">
+    <h3>线性规划教学指南</h3>
+    
+    <div class="tutorial-step active" id="step1">
+        <h4>第一步：理解问题背景</h4>
+        <p>本系统模拟了一个零食购买决策问题：</p>
+        <ul>
+            <li>牛奶：每盒5元，提供120千卡热量</li>
+            <li>面包：每个3元，提供220千卡热量</li>
+        </ul>
+        <p>目标是在预算和热量限制下找到最优购买方案。</p>
+        <button onclick="nextTutorialStep()">下一步</button>
+    </div>
+    
+    <div class="tutorial-step" id="step2">
+        <h4>第二步：设置约束条件</h4>
+        <p>线性规划问题由约束条件和目标函数组成：</p>
+        <p><b>约束条件：</b></p>
+        <ul>
+            <li>预算约束：5x + 3y ≤ 预算值</li>
+            <li>热量约束：120x + 220y ≤ 热量上限</li>
+            <li>非负约束：x ≥ 0, y ≥ 0</li>
+        </ul>
+        <p>调整滑块来设置不同的预算和热量约束。</p>
+        <button onclick="prevTutorialStep()">上一步</button>
+        <button onclick="nextTutorialStep()">下一步</button>
+    </div>
+    
+    <div class="tutorial-step" id="step3">
+        <h4>第三步：可行域分析</h4>
+        <p>约束条件的交集形成<b>可行域</b>（绿色区域）。每个约束条件在坐标系中表示为一条直线：</p>
+        <ul>
+            <li>红线：预算约束边界</li>
+            <li>蓝线：热量约束边界</li>
+        </ul>
+        <p>可行域的顶点是这些约束线的交点，包括与坐标轴的交点。</p>
+        <button onclick="prevTutorialStep()">上一步</button>
+        <button onclick="nextTutorialStep()">下一步</button>
+    </div>
+    
+    <div class="tutorial-step" id="step4">
+        <h4>第四步：最优解分析</h4>
+        <p>线性规划的基本原理：最优解总是出现在可行域的顶点上。</p>
+        <p>点击"顶点坐标显示"查看所有顶点，然后点击"开始顶点检验"查看系统如何逐一检验每个顶点，找出最优解。</p>
+        <button onclick="prevTutorialStep()">上一步</button>
+        <button onclick="closeTutorial()">完成学习</button>
+    </div>
+</div>
+
+<script>
+// 全局变量
+let myChart = null;
+let animationTimer = null;
+let animationSteps = [];
+let currentStep = 0;
+let showVertices = false;
+let currentTutorialStep = 1;
+let selectedFoods = [];
+let customZoom = false;
+let zoomFactor = { x: 1.3, y: 1.3 };
+let showObjectiveLine = false;
+let optimalZ = 0;
+
+// 零食数据库
+const foodDatabase = {
+    牛奶: { price: 5, calorie: 120, nutrition: 12, color: '#5470c6' },
+    面包: { price: 3, calorie: 220, nutrition: 8, color: '#91cc75' },
+    水果干: { price: 3, calorie: 300, nutrition: 8, color: '#fac858' },
+    坚果: { price: 6, calorie: 550, nutrition: 10, color: '#ee6666' },
+    巧克力棒: { price: 6, calorie: 700, nutrition: 8, color: '#73c0de' },
+    薯片: { price: 4, calorie: 550, nutrition: 3, color: '#3ba272' },
+    果冻: { price: 2, calorie: 80, nutrition: 4, color: '#fc8452' },
+    饼干: { price: 5, calorie: 400, nutrition: 6, color: '#9a60b4' }
+};
+
+// 当前选择的两种零食
+let products = {
+    food1: { name: '牛奶', price: 5, calorie: 120, nutrition: 12, color: '#5470c6' },
+    food2: { name: '面包', price: 3, calorie: 220, nutrition: 8, color: '#91cc75' }
+};
+
+// ============== 页面加载时初始化 ==============
+window.onload = function() {
+    try {
+        document.getElementById('loadingTip').style.display = 'block';
+        
+        // 创建零食选择区域
+        createFoodSelection();
+        
+        // 初始化默认选中的零食
+        selectedFoods = ['牛奶', '面包'];
+        
+        // 初始化图表
+        initChart();
+        
+        // 填充食品表格
+        fillFoodTable();
+        
+        // 初始化任务系统
+        initTaskUI();
+        
+        // 确保结果面板初始不显示
+        document.getElementById('result-panel-basic').style.display = 'none';
+        document.getElementById('result-panel-objective').style.display = 'none';
+        document.getElementById('result-panel-full').style.display = 'none';
+        
+        // 更新UI
+        updateUI();
+        
+        document.getElementById('loadingTip').style.display = 'none';
+    } catch (e) {
+        console.error("初始化出错:", e);
+        alert("初始化失败，请刷新页面重试: " + e.message);
+        document.getElementById('loadingTip').style.display = 'none';
+    }
+};
+
+// 创建零食选择区域
+function createFoodSelection() {
+    const foodSelectionDiv = document.querySelector('.food-selection');
+    if (!foodSelectionDiv) return;
+    
+    // 清空现有内容
+    foodSelectionDiv.innerHTML = '';
+    
+    // 为每种零食创建选择芯片
+    for (const [foodName, foodData] of Object.entries(foodDatabase)) {
+        const chip = document.createElement('div');
+        chip.className = 'food-chip';
+        chip.textContent = foodName;
+        chip.onclick = function() { selectFood(this, foodName); };
+        
+        // 如果是默认选中的零食，添加selected类
+        if (foodName === '牛奶' || foodName === '面包') {
+            chip.classList.add('selected');
+        }
+        
+        foodSelectionDiv.appendChild(chip);
+    }
+}
+
+// ============== 安全初始化图表 ==============
+function initChart() {
+    try {
+        // 如果已存在图表实例，先销毁
+        if (myChart && myChart.dispose) {
+            myChart.dispose();
+        }
+        
+        // 创建新图表实例
+        myChart = echarts.init(document.getElementById('chart'));
+        
+        // 注册窗口大小改变事件
+        window.addEventListener('resize', function() {
+            if (myChart) {
+                myChart.resize();
+            }
+        });
+        
+        return true;
+    } catch (e) {
+        console.error("初始化图表失败:", e);
+        return false;
+    }
+}
+
+// ============== 核心算法：计算顶点 ==============
+function calculateVertices(budget, calorie) {
+    try {
+        const points = [];
+        
+        // 原点
+        points.push({x: 0, y: 0});
+        
+        // 计算预算约束线与坐标轴的交点
+        if (products.food1.price > 0) {
+            const xMax = budget / products.food1.price;
+            points.push({x: xMax, y: 0});
+        }
+        
+        if (products.food2.price > 0) {
+            const yMax = budget / products.food2.price;
+            points.push({x: 0, y: yMax});
+        }
+        
+        // 计算热量约束线与坐标轴的交点
+        if (products.food1.calorie > 0) {
+            const xMin = calorie / products.food1.calorie;
+            points.push({x: xMin, y: 0});
+        }
+        
+        if (products.food2.calorie > 0) {
+            const yMin = calorie / products.food2.calorie;
+            points.push({x: 0, y: yMin});
+        }
+        
+        // 计算两约束线的交点
+        const denominator = (products.food1.price * products.food2.calorie - 
+                            products.food2.price * products.food1.calorie);
+        
+        if (denominator !== 0) {
+            const x = (products.food2.calorie * budget - products.food2.price * calorie) / denominator;
+            const y = (products.food1.price * calorie - products.food1.calorie * budget) / denominator;
+            
+            if (x >= 0 && y >= 0) {
+                points.push({x: x, y: y});
+            }
+        }
+        
+        // 验证点的有效性（非负）并去重
+        const validPoints = points.filter(p => 
+            p.x >= 0 && p.y >= 0 && 
+            !isNaN(p.x) && !isNaN(p.y) && 
+            p.x !== Infinity && p.y !== Infinity
+        );
+        
+        // 找出满足所有约束的点
+        return validPoints.filter(p => {
+            // 检查预算约束
+            const totalCost = p.x * products.food1.price + p.y * products.food2.price;
+            const totalCalorie = p.x * products.food1.calorie + p.y * products.food2.calorie;
+            return totalCost <= budget && totalCalorie <= calorie;
+        });
+    } catch (e) {
+        console.error("计算顶点错误:", e);
+        return [];
+    }
+}
+
+// ============== 顶点排序（顺时针排序，用于绘制正确的闭合区域）==============
+function sortVerticesClockwise(vertices) {
+    try {
+        if (vertices.length <= 2) return vertices;
+        
+        // 计算中心点
+        const center = vertices.reduce(
+            (acc, v) => ({x: acc.x + v.x, y: acc.y + v.y}), 
+            {x: 0, y: 0}
+        );
+        center.x /= vertices.length;
+        center.y /= vertices.length;
+        
+        // 按角度排序
+        return vertices.slice().sort((a, b) => {
+            const angleA = Math.atan2(a.y - center.y, a.x - center.x);
+            const angleB = Math.atan2(b.y - center.y, b.x - center.x);
+            return angleA - angleB;
+        });
+    } catch (e) {
+        console.error("顶点排序错误:", e);
+        return vertices;
+    }
+}
+
+// ============== 安全的UI更新函数 ==============
+function updateUI() {
+    try {
+        document.getElementById('loadingTip').style.display = 'block';
+        
+        // 确保在setTimeout之前完成一些必要的检查
+        const budgetInput = document.getElementById('budgetInput');
+        const calorieInput = document.getElementById('calorieInput');
+        
+        if (!budgetInput || !calorieInput) {
+            console.error("找不到必要的输入元素，无法更新UI");
+            document.getElementById('loadingTip').style.display = 'none';
+            return;
+        }
+        
+        // 使用setTimeout确保UI事件处理完成
+        setTimeout(() => {
+            try {
+                // 同步控制面板值
+                syncControlValues();
+                
+                // 更新图表
+                renderChart();
+                
+                // 更新结果显示
+                updateResults();
+                
+                // 更新数学模型
+                updateEquations();
+            } catch (e) {
+                console.error("更新UI错误:", e);
+            } finally {
+                document.getElementById('loadingTip').style.display = 'none';
+            }
+        }, 50);
+    } catch (e) {
+        console.error("更新UI准备阶段错误:", e);
+        document.getElementById('loadingTip').style.display = 'none';
+    }
+}
+
+// ============== 图表渲染函数 ==============
+function renderChart() {
+    try {
+        console.log("开始渲染图表...");
+        
+        // 完全重新初始化图表，避免状态问题
+        if (!myChart || !myChart.setOption) {
+            console.log("图表实例不存在或不完整，重新初始化");
+            if (!initChart()) {
+                console.error("重新初始化图表失败");
+                return false;
+            }
+        }
+        
+        // 确保图表容器可见
+        const chartContainer = document.getElementById('chart-container');
+        if (chartContainer) {
+            chartContainer.style.display = 'block';
+            chartContainer.style.height = '600px';
+        }
+        
+        const chartDiv = document.getElementById('chart');
+        if (chartDiv) {
+            chartDiv.style.height = '600px';
+        }
+        
+        // 获取参数
+        const budget = parseFloat(document.getElementById('budgetInput').value) || 30;
+        const calorie = parseFloat(document.getElementById('calorieInput').value) || 800;
+        
+        console.log(`渲染图表，预算=${budget}, 热量=${calorie}`);
+        
+        // 计算顶点
+    const vertices = calculateVertices(budget, calorie);
+        console.log("计算顶点结果:", vertices);
+
+        // 智能计算坐标轴范围
+        let maxX = 10, maxY = 10; // 设置默认值，确保图表始终显示
+        
+        if (vertices.length > 0) {
+            // 有顶点时基于顶点调整范围
+            if (customZoom) {
+                // 使用自定义缩放
+                maxX = Math.max(5, ...vertices.map(v => v.x || 0)) * zoomFactor.x;
+                maxY = Math.max(5, ...vertices.map(v => v.y || 0)) * zoomFactor.y;
+            } else {
+                // 自适应缩放
+                const maxVertexX = Math.max(...vertices.map(v => v.x || 0));
+                const maxVertexY = Math.max(...vertices.map(v => v.y || 0));
+                
+                let baseScale = 1.3;
+                if (maxVertexX < 5 || maxVertexY < 5) {
+                    baseScale = 2.0;
+                }
+                if (maxVertexX < 1 || maxVertexY < 1) {
+                    baseScale = 3.0;
+                }
+                
+                maxX = Math.max(Math.max(maxVertexX, 0.5) * baseScale, 5);
+                maxY = Math.max(Math.max(maxVertexY, 0.5) * baseScale, 5);
+                
+                const ratio = maxX / maxY;
+                if (ratio > 3) {
+                    maxY = maxX / 3;
+                } else if (ratio < 0.33) {
+                    maxX = maxY / 3;
+                }
+            }
+        }
+        
+        // 基础配置
+    const option = {
+        title: { 
+                text: '线性规划可视化',
+                subtext: `预算：${budget}元 | 热量上限：${calorie}kcal`,
+            left: 'center'
+        },
+            tooltip: {
+                trigger: 'item',
+                formatter: function(params) {
+                    if (params.seriesName === '可行域') return '';
+                    if (params.seriesName === '顶点坐标' || params.seriesName === '当前检验点') {
+                        const x = params.value[0];
+                        const y = params.value[1];
+                        return `坐标: (${x.toFixed(2)}, ${y.toFixed(2)})<br/>` +
+                               `花费: ${(x*products.food1.price + y*products.food2.price).toFixed(2)}元<br/>` +
+                               `热量: ${(x*products.food1.calorie + y*products.food2.calorie).toFixed(0)}千卡`;
+                    }
+                    return params.seriesName;
+                }
+            },
+            legend: {
+                data: ['预算约束', '热量约束', '可行域', '顶点坐标'],
+                bottom: 10
+            },
+            grid: {
+                left: '10%',
+                right: '10%',
+                top: '15%',
+                bottom: '15%',
+                containLabel: true
+        },
+        xAxis: { 
+                name: products.food1 ? `${products.food1.name}（个）` : "x轴",
+                nameLocation: 'middle',
+                nameGap: 30,
+            min: 0, 
+                max: maxX,
+                type: 'value',
+                boundaryGap: false,
+                axisLine: {
+                    lineStyle: {
+                        width: 2
+                    }
+                }
+        },
+        yAxis: { 
+                name: products.food2 ? `${products.food2.name}（个）` : "y轴",
+                nameLocation: 'middle',
+                nameGap: 30,
+            min: 0, 
+                max: maxY,
+                type: 'value',
+                axisLine: {
+                    lineStyle: {
+                        width: 2
+                    }
+                }
+            },
+            series: []
+        };
+        
+        // 1. 绘制预算约束线
+        option.series.push({
+            name: '预算约束',
+                type: 'line',
+            symbol: 'none',
+            data: [
+                [0, budget / products.food2.price],
+                [budget / products.food1.price, 0]
+            ],
+            lineStyle: {
+                color: '#ff4d4f',
+                width: 2
+            }
+        });
+        
+        // 2. 绘制热量约束线
+        option.series.push({
+            name: '热量约束',
+                type: 'line',
+            symbol: 'none',
+            data: [
+                [0, calorie / products.food2.calorie],
+                [calorie / products.food1.calorie, 0]
+            ],
+            lineStyle: {
+                color: '#1890ff',
+                width: 2,
+                type: 'dashed'
+            }
+        });
+        
+        // 3. 绘制可行域
+        if (vertices.length >= 3) {
+            // 需要对顶点进行排序以便形成正确的区域边界
+            const sortedVertices = sortVerticesClockwise(vertices);
+            
+            // 添加第一个点作为结束点，形成闭合区域
+            const areaData = [...sortedVertices.map(v => [v.x, v.y])];
+            if (areaData.length > 0) {
+                areaData.push(areaData[0]);
+            }
+            
+            option.series.push({
+                name: '可行域',
+                type: 'line',
+                symbol: 'none',
+                data: areaData,
+                areaStyle: {
+                    color: 'rgba(150, 230, 150, 0.3)'
+                },
+                lineStyle: {
+                    color: '#95de64',
+                    width: 1
+                }
+            });
+        }
+        
+        // 4. 如果需要，绘制顶点
+        if (showVertices && vertices.length > 0) {
+        option.series.push({
+                name: '顶点坐标',
+            type: 'scatter',
+                symbol: 'circle',
+                symbolSize: 10,
+                data: vertices.map(v => [v.x, v.y]),
+                itemStyle: {
+                    color: '#722ed1'
+                },
+            label: {
+                show: true,
+                    formatter: function(params) {
+                        return `(${parseFloat(params.value[0]).toFixed(1)},${parseFloat(params.value[1]).toFixed(1)})`;
+                    },
+                    position: 'top',
+                    fontSize: 12,
+                    color: '#333',
+                    backgroundColor: 'rgba(255,255,255,0.8)',
+                    padding: [2, 4],
+                    borderRadius: 3
+            }
+        });
+    }
+
+        // 5. 添加目标函数线
+        if (showObjectiveLine) {
+            // 添加目标函数的代码...
+            const objective = document.getElementById('objective').value;
+            let slope, intercept;
+            
+            switch (objective) {
+                case 'maxCalorie':
+                    // 目标函数 z = ax + by，等值线斜率为 -a/b
+                    slope = -products.food1.calorie / products.food2.calorie;
+                    break;
+                case 'minCost':
+                    slope = -products.food1.price / products.food2.price;
+                    break;
+                case 'maxNutrition':
+                    slope = -products.food1.nutrition / products.food2.nutrition;
+                    break;
+            }
+            
+            // 计算最优解
+            const optimal = calculateVertices(budget, calorie).reduce((best, current) => {
+                const cost = current.x * products.food1.price + current.y * products.food2.price;
+                const calories = current.x * products.food1.calorie + current.y * products.food2.calorie;
+                const nutrition = current.x * products.food1.nutrition + current.y * products.food2.nutrition;
+                
+                if (objective === 'maxCalorie') {
+                    return calories > best.calories ? current : best;
+                } else if (objective === 'minCost') {
+                    return cost < best.cost ? current : best;
+                } else {
+                    return nutrition > best.nutrition ? current : best;
+                }
+            }, vertices[0]);
+            
+            const optimalZ = objective === 'maxCalorie' ? optimal.calories : objective === 'minCost' ? optimal.cost : optimal.nutrition;
+            
+            // 创建不同目标函数值的等值线
+            for (let i = 1; i <= 5; i++) {
+                let zValue;
+                if (objective === 'maxCalorie') {
+                    zValue = optimalZ * (0.5 + i * 0.1); // 最优值的50%-100%
+                } else if (objective === 'minCost') {
+                    zValue = optimalZ * (1.5 - i * 0.1); // 最优值的150%-100%
+                } else {
+                    zValue = optimalZ * (0.5 + i * 0.1); // 最优值的50%-100%
+                }
+                
+                // 计算y截距
+                intercept = zValue / products.food2.calorie;
+                if (objective === 'minCost') {
+                    intercept = zValue / products.food2.price;
+                } else if (objective === 'maxNutrition') {
+                    intercept = zValue / products.food2.nutrition;
+                }
+                
+                // 计算线的两个端点
+                const x1 = 0;
+                const y1 = intercept;
+                const x2 = -intercept / slope;
+                const y2 = 0;
+                
+                option.series.push({
+                    name: `目标函数等值线${i}`,
+                    type: 'line',
+                    symbol: 'none',
+                    data: [
+                        [x1, y1],
+                        [x2, y2]
+                    ],
+                    lineStyle: {
+                        color: i === 5 ? '#ff7a45' : '#ffc53d',
+                        width: i === 5 ? 2 : 1,
+                        type: 'dotted',
+                        opacity: 0.6 + i * 0.08
+                    }
+                });
+            }
+        }
+        
+        // 6. 如果有当前动画步骤，显示动画点
+        if (currentStep < animationSteps.length && animationSteps[currentStep]) {
+            const step = animationSteps[currentStep];
+            option.series.push({
+                name: '当前检验点',
+                type: 'effectScatter',
+                symbol: 'circle',
+                symbolSize: 20,
+                data: [[step.vertex.x, step.vertex.y]],
+                itemStyle: {
+                    color: step.action === 'final' ? '#52c41a' : '#fa8c16'
+                },
+                rippleEffect: {
+                    brushType: 'stroke',
+                    scale: 3,
+                    period: 2
+                },
+                zlevel: 10
+            });
+        }
+        
+        // 设置选项
+        myChart.setOption(option, true);
+        console.log("图表渲染成功");
+        return true;
+    } catch (e) {
+        console.error("渲染图表错误:", e);
+        return false;
+    }
+}
+
+// ============== 停止所有动画 ==============
+function stopAllAnimations() {
+    if (animationTimer) {
+        clearInterval(animationTimer);
+        animationTimer = null;
+    }
+    
+    document.getElementById('animateBtn').disabled = false;
+    renderChart();
+    updateResults();
+}
+
+// ============== 显示/隐藏顶点坐标 ==============
+function toggleVertex() {
+    showVertices = !showVertices;
+    document.getElementById('vertexBtn').innerText = showVertices ? '🧭 隐藏顶点坐标' : '🧭 显示顶点坐标';
+    renderChart();
+}
+
+// ============== 教学指导函数 ==============
+function toggleTutorial() {
+    const panel = document.getElementById('tutorialPanel');
+    panel.style.display = panel.style.display === 'none' || panel.style.display === '' ? 'block' : 'none';
+}
+
+function nextTutorialStep() {
+    if (currentTutorialStep < 4) {
+        document.getElementById(`step${currentTutorialStep}`).classList.remove('active');
+        currentTutorialStep++;
+        document.getElementById(`step${currentTutorialStep}`).classList.add('active');
+    }
+}
+
+function prevTutorialStep() {
+    if (currentTutorialStep > 1) {
+        document.getElementById(`step${currentTutorialStep}`).classList.remove('active');
+        currentTutorialStep--;
+        document.getElementById(`step${currentTutorialStep}`).classList.add('active');
+    }
+}
+
+function closeTutorial() {
+    document.getElementById('tutorialPanel').style.display = 'none';
+}
+
+// ============== 零食选择功能 ==============
+function selectFood(element, foodName) {
+    if (element.classList.contains('selected')) {
+        // 取消选择
+        element.classList.remove('selected');
+        selectedFoods = selectedFoods.filter(f => f !== foodName);
+    } else {
+        // 新选择，但限制最多选择两种
+        if (selectedFoods.length < 2) {
+            element.classList.add('selected');
+            selectedFoods.push(foodName);
+        } else {
+            alert('最多只能选择两种零食进行优化！');
+        }
+    }
+}
+
+function confirmFoodSelection() {
+    if (selectedFoods.length !== 2) {
+        alert('请选择两种零食进行优化！');
+        return;
+    }
+    
+    // 更新产品数据
+    const food1 = selectedFoods[0];
+    const food2 = selectedFoods[1];
+    
+    products = {
+        food1: { 
+            name: food1,
+            price: foodDatabase[food1].price, 
+            calorie: foodDatabase[food1].calorie, 
+            nutrition: foodDatabase[food1].nutrition,
+            color: foodDatabase[food1].color
+        },
+        food2: { 
+            name: food2,
+            price: foodDatabase[food2].price, 
+            calorie: foodDatabase[food2].calorie, 
+            nutrition: foodDatabase[food2].nutrition,
+            color: foodDatabase[food2].color
+        }
+    };
+    
+    // 更新UI
+    alert(`已选择 ${food1} 和 ${food2} 作为优化对象！`);
+    updateUI();
+    fillFoodTable(); // 更新表格高亮
+    
+    // 显示"继续下一步"按钮
+    document.getElementById('next-task-btn').style.display = 'inline-block';
+}
+
+function resetFoodSelection() {
+    // 重置选择状态
+    selectedFoods = [];
+    document.querySelectorAll('.food-chip').forEach(chip => {
+        chip.classList.remove('selected');
+    });
+    
+    // 恢复默认商品
+    products = {
+        food1: { 
+            name: '牛奶',
+            price: foodDatabase['牛奶'].price, 
+            calorie: foodDatabase['牛奶'].calorie, 
+            nutrition: foodDatabase['牛奶'].nutrition,
+            color: foodDatabase['牛奶'].color
+        },
+        food2: { 
+            name: '面包',
+            price: foodDatabase['面包'].price, 
+            calorie: foodDatabase['面包'].calorie, 
+            nutrition: foodDatabase['面包'].nutrition,
+            color: foodDatabase['面包'].color
+        }
+    };
+    
+    // 自动选中默认食品
+    selectedFoods = ['牛奶', '面包'];
+    document.querySelectorAll('.food-chip').forEach(chip => {
+        if (chip.textContent === '牛奶' || chip.textContent === '面包') {
+            chip.classList.add('selected');
+        }
+    });
+    
+    updateUI();
+    fillFoodTable(); // 更新表格高亮
+}
+
+// 滑动条和输入框联动
+function updateBudget(value) {
+    const budget = parseFloat(value);
+    document.getElementById('budget').value = budget;
+    document.getElementById('budgetInput').value = budget;
+    
+    // 提供视觉反馈
+    const resultPanels = [
+        document.getElementById('result-panel-basic'),
+        document.getElementById('result-panel-objective'),
+        document.getElementById('result-panel-full')
+    ];
+    
+    for (const panel of resultPanels) {
+        if (panel && panel.style.display !== 'none') {
+            panel.classList.add('highlight-update');
+            setTimeout(() => {
+                panel.classList.remove('highlight-update');
+            }, 300);
+        }
+    }
+    
+    updateUI();
+}
+
+function updateCalorie(value) {
+    const calorie = parseFloat(value);
+    document.getElementById('calorie').value = calorie;
+    document.getElementById('calorieInput').value = calorie;
+    
+    // 提供视觉反馈
+    const resultPanels = [
+        document.getElementById('result-panel-basic'),
+        document.getElementById('result-panel-objective'),
+        document.getElementById('result-panel-full')
+    ];
+    
+    for (const panel of resultPanels) {
+        if (panel && panel.style.display !== 'none') {
+            panel.classList.add('highlight-update');
+            setTimeout(() => {
+                panel.classList.remove('highlight-update');
+            }, 300);
+        }
+    }
+    
+    updateUI();
+}
+
+// ============== 填充食品表格 ==============
+function fillFoodTable() {
+    const tableBody = document.getElementById('foodTableBody');
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = '';
+    
+    for (const [foodName, foodData] of Object.entries(foodDatabase)) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${foodName}</td>
+            <td>${foodData.price}</td>
+            <td>${foodData.calorie}</td>
+            <td>${foodData.nutrition}</td>
+        `;
+        
+        // 如果是选中的食品，添加高亮
+        if (selectedFoods.includes(foodName)) {
+            row.classList.add('selected');
+        }
+        
+        // 添加点击选择功能
+        row.addEventListener('click', function() {
+            const foodChips = document.querySelectorAll('.food-chip');
+            for (const chip of foodChips) {
+                if (chip.textContent === foodName) {
+                    selectFood(chip, foodName);
+                    // 更新表格行高亮
+                    if (selectedFoods.includes(foodName)) {
+                        row.classList.add('selected');
+                    } else {
+                        row.classList.remove('selected');
+                    }
+                    break;
+                }
+            }
+        });
+        
+        tableBody.appendChild(row);
+    }
+}
+
+// ============== 更新数学方程 ==============
+function updateEquations() {
+    // 检查元素是否存在
+    if (!document.getElementById('var1Name') || 
+        !document.getElementById('var2Name') || 
+        !document.getElementById('budgetEq') || 
+        !document.getElementById('calorieEq') || 
+        !document.getElementById('objectiveEq')) {
+        return;
+    }
+    
+    // 更新变量名称
+    document.getElementById('var1Name').textContent = products.food1.name;
+    document.getElementById('var2Name').textContent = products.food2.name;
+    
+    // 更新约束方程
+    const budget = document.getElementById('budgetInput').value;
+    const calorie = document.getElementById('calorieInput').value;
+    
+    document.getElementById('budgetEq').textContent = 
+        `${products.food1.price}x + ${products.food2.price}y ≤ ${budget} (预算约束)`;
+    document.getElementById('calorieEq').textContent = 
+        `${products.food1.calorie}x + ${products.food2.calorie}y ≤ ${calorie} (热量约束)`;
+    
+    // 更新目标函数
+    const objective = document.getElementById('objective').value;
+    let objectiveText = '';
+    switch (objective) {
+        case 'maxCalorie':
+            objectiveText = `最大化 Z = ${products.food1.calorie}x + ${products.food2.calorie}y (最大化热量)`;
+            break;
+        case 'minCost':
+            objectiveText = `最小化 Z = ${products.food1.price}x + ${products.food2.price}y (最小化成本)`;
+            break;
+        case 'maxNutrition':
+            objectiveText = `最大化 Z = ${products.food1.nutrition}x + ${products.food2.nutrition}y (最大化营养)`;
+            break;
+    }
+    document.getElementById('objectiveEq').textContent = objectiveText;
+}
+
+// 添加任务引导功能
+const tasks = [
+    {
+        id: 'task1',
+        title: '初识线性规划',
+        modules: ['intro-module', 'food-selection-module', 'food-data-module'], // 添加食品数据模块到第一步
+        completed: false
+    },
+    {
+        id: 'task2',
+        title: '设置约束条件',
+        // 确保第二步显示约束条件和数学模型，以及结果面板(但只显示基础信息)
+        modules: ['constraint-module', 'equation-module', 'result-panel-basic'],
+        completed: false
+    },
+    {
+        id: 'task3',
+        title: '设定优化目标',
+        modules: ['objective-module', 'result-panel-objective'], // 添加特定的结果面板
+        completed: false
+    },
+    {
+        id: 'task4',
+        title: '可行域探索',
+        modules: ['feasible-region-module', 'vertex-module'],
+        completed: false
+    },
+    {
+        id: 'task5',
+        title: '寻找最优解',
+        modules: ['optimal-solution-module', 'result-panel-full', 'controlPanel'],
+        completed: false
+    }
+];
+
+let currentTaskIndex = 0;
+
+function showTask(taskIndex) {
+    // 隐藏所有任务内容
+    document.querySelectorAll('.task-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // 移除所有任务项的active类
+    document.querySelectorAll('.task-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // 隐藏所有结果面板
+    document.getElementById('result-panel-basic').style.display = 'none';
+    document.getElementById('result-panel-objective').style.display = 'none';
+    document.getElementById('result-panel-full').style.display = 'none';
+    
+    // 显示当前任务内容
+    const currentTask = tasks[taskIndex];
+    const contentElement = document.getElementById(`content-${currentTask.id}`);
+    if (contentElement) {
+        contentElement.classList.add('active');
+    }
+    
+    document.getElementById(currentTask.id).classList.add('active');
+    
+    // 隐藏所有模块
+    document.querySelectorAll('.module-container').forEach(module => {
+        module.style.display = 'none';
+    });
+    
+    // 显示当前任务相关的模块
+    currentTask.modules.forEach(moduleId => {
+        const moduleElement = document.getElementById(moduleId);
+        if (moduleElement) {
+            moduleElement.style.display = 'block';
+        }
+        
+        // 特殊处理结果面板，因为它们不是module-container类
+        if (moduleId === 'result-panel-basic') {
+            document.getElementById('result-panel-basic').style.display = 'block';
+        } else if (moduleId === 'result-panel-objective') {
+            document.getElementById('result-panel-objective').style.display = 'block';
+        } else if (moduleId === 'result-panel-full') {
+            document.getElementById('result-panel-full').style.display = 'block';
+        }
+    });
+    
+    // 更新当前任务索引
+    currentTaskIndex = taskIndex;
+    
+    // 始终显示图表区域，并确保其在最顶层
+    const chartContainer = document.getElementById('chart-container');
+    chartContainer.style.display = 'block';
+    chartContainer.style.zIndex = '10';
+    
+    // 更新UI和结果显示
+    updateUI();
+}
+
+function markTaskCompleted(taskIndex) {
+    tasks[taskIndex].completed = true;
+    const statusElement = document.querySelector(`#${tasks[taskIndex].id} .task-status`);
+    if (statusElement) {
+        statusElement.textContent = '已完成';
+    }
+    document.getElementById(tasks[taskIndex].id).classList.add('completed');
+}
+
+function nextTask() {
+    if (currentTaskIndex < tasks.length - 1) {
+        // 标记当前任务为已完成
+        markTaskCompleted(currentTaskIndex);
+        // 显示下一个任务
+        showTask(currentTaskIndex + 1);
+    }
+}
+
+function prevTask() {
+    if (currentTaskIndex > 0) {
+        showTask(currentTaskIndex - 1);
+    }
+}
+
+// 初始化任务界面
+function initTaskUI() {
+    // 显示第一个任务
+    showTask(0);
+    
+    // 添加任务列表项的点击事件
+    document.querySelectorAll('.task-item').forEach((item, index) => {
+        item.addEventListener('click', () => {
+            showTask(index);
+        });
+    });
+    
+    // 显示教学指导按钮
+    document.querySelector('.tutorial-btn').style.display = 'block';
+}
+
+// 在页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 确保页面内容全部加载完毕
+    setTimeout(function() {
+        try {
+            // 检查和创建缺失的UI元素
+            if (!document.getElementById('loadingTip')) {
+                const loadingTip = document.createElement('div');
+                loadingTip.id = 'loadingTip';
+                loadingTip.className = 'loading';
+                loadingTip.textContent = '加载中...';
+                document.getElementById('chart-container').appendChild(loadingTip);
+            }
+            
+            // 如果没有找到约束模块，创建一个
+            if (!document.getElementById('constraint-module')) {
+                const constraintModule = document.createElement('div');
+                constraintModule.id = 'constraint-module';
+                constraintModule.className = 'module-container';
+                constraintModule.innerHTML = `
+                    <div class="module-header">
+                        <h3>🔧 约束条件设置</h3>
+                    </div>
+                    <p>调整以下滑块来设置不同的预算和热量约束：</p>
+                    <div class="control-item">
+                        <label for="budget">预算约束</label>
+                        <div class="slider-container">
+                            <input type="range" id="budget" min="10" max="100" value="30" oninput="updateBudget(this.value)">
+                            <input type="number" id="budgetInput" min="10" max="100" value="30" onchange="updateBudget(this.value)">
+                        </div>
+                    </div>
+                    
+                    <div class="control-item">
+                        <label for="calorie">热量上限</label>
+                        <div class="slider-container">
+                            <input type="range" id="calorie" min="300" max="2000" value="800" oninput="updateCalorie(this.value)">
+                            <input type="number" id="calorieInput" min="300" max="2000" value="800" onchange="updateCalorie(this.value)">
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button onclick="prevTask()">返回上一步</button>
+                        <button onclick="nextTask()" style="background:#52c41a;">继续下一步</button>
+                    </div>
+                `;
+                document.querySelector('.controls-column').appendChild(constraintModule);
+            }
+        } catch (e) {
+            console.error("初始化UI元素错误:", e);
+        }
+    }, 500);
+});
+
+// 模块注册
+const moduleRegistry = {
+    'intro-module': {
+        init: function() {
+            // 初始化介绍模块
+        },
+        update: function() {
+            // 更新介绍模块
+        }
+    },
+    'food-selection-module': {
+        init: function() {
+            // 初始化食品选择模块
+            fillFoodTable();
+        },
+        update: function() {
+            // 更新食品选择模块
+        }
+    },
+    // 其他模块注册...
+};
+
+function initModules() {
+    // 初始化所有模块
+    Object.values(moduleRegistry).forEach(module => {
+        if(module.init) module.init();
+    });
+}
+
+// 在页面加载完成后初始化任务和模块
+window.addEventListener('load', function() {
+    initModules();
+    initTaskUI();
+});
+
+// 修复syncControlValues函数中的错误处理
+function syncControlValues() {
+    try {
+        // 获取主控制面板的值
+        const budgetInput = document.getElementById('budgetInput');
+        const calorieInput = document.getElementById('calorieInput');
+        const objectiveSelect = document.getElementById('objective');
+        
+        if (!budgetInput || !calorieInput || !objectiveSelect) {
+            console.warn("无法找到主控制面板的元素");
+            return;
+        }
+        
+        const budgetValue = budgetInput.value;
+        const calorieValue = calorieInput.value;
+        const objectiveValue = objectiveSelect.value;
+        
+        // 同步到其他控制面板（如果存在）
+        const budgetControlInput = document.getElementById('budgetInput-control');
+        const calorieControlInput = document.getElementById('calorieInput-control');
+        const objectiveControlSelect = document.getElementById('objective-control');
+        
+        if (budgetControlInput) {
+            budgetControlInput.value = budgetValue;
+        }
+        
+        if (calorieControlInput) {
+            calorieControlInput.value = calorieValue;
+        }
+        
+        if (objectiveControlSelect) {
+            objectiveControlSelect.value = objectiveValue;
+        }
+        
+        // 同步滑块值
+        const budgetSlider = document.getElementById('budget');
+        const calorieSlider = document.getElementById('calorie');
+        const budgetControlSlider = document.getElementById('budget-control');
+        const calorieControlSlider = document.getElementById('calorie-control');
+        
+        if (budgetSlider) {
+            budgetSlider.value = budgetValue;
+        }
+        
+        if (calorieSlider) {
+            calorieSlider.value = calorieValue;
+        }
+        
+        if (budgetControlSlider) {
+            budgetControlSlider.value = budgetValue;
+        }
+        
+        if (calorieControlSlider) {
+            calorieControlSlider.value = calorieValue;
+        }
+    } catch (e) {
+        console.error("同步控制面板值时出错:", e);
+    }
+}
+
+// ============== 计算最优解并显示结果 ==============
+function updateResults() {
+    try {
+        // 获取参数
+        const budget = parseFloat(document.getElementById('budgetInput').value);
+        const calorie = parseFloat(document.getElementById('calorieInput').value);
+        const objective = document.getElementById('objective').value;
+        
+        // 计算可行域顶点
+        const vertices = calculateVertices(budget, calorie);
+        
+        // 基础信息面板 - 适用于任务2
+        const basicPanel = document.getElementById('result-panel-basic');
+        const basicContent = document.getElementById('resultContent-basic');
+        
+        if (basicPanel && basicContent) {
+            if (vertices.length === 0) {
+                basicContent.innerHTML = '<p><b>⚠️ 提示</b>: 当前约束条件下没有可行解</p>';
+            } else {
+                // 只显示约束情况
+                basicContent.innerHTML = `
+                    <p><b>约束条件</b></p>
+                    <p>预算限制: ${budget}元</p>
+                    <p>热量上限: ${calorie}千卡</p>
+                    <p>可行点数量: ${vertices.length}个</p>
+                    <p class="panel-tip">调整左侧滑块查看可行域变化</p>
+                `;
+            }
+        }
+        
+        // 优化目标面板 - 适用于任务3
+        const objectivePanel = document.getElementById('result-panel-objective');
+        const objectiveContent = document.getElementById('resultContent-objective');
+        
+        if (objectivePanel && objectiveContent) {
+            if (vertices.length === 0) {
+                objectiveContent.innerHTML = '<p><b>⚠️ 提示</b>: 当前约束条件下没有可行解</p>';
+            } else {
+                // 显示所选优化目标，但不直接显示最优解
+                let objectiveName = '';
+                switch (objective) {
+                    case 'maxCalorie': objectiveName = '最大化热量摄入'; break;
+                    case 'minCost': objectiveName = '最小化支出成本'; break;
+                    case 'maxNutrition': objectiveName = '最大化营养得分'; break;
+                }
+                
+                // 计算目标函数的系数
+                let coefficientX, coefficientY;
+                switch (objective) {
+                    case 'maxCalorie': 
+                        coefficientX = products.food1.calorie;
+                        coefficientY = products.food2.calorie;
+                        break;
+                    case 'minCost': 
+                        coefficientX = products.food1.price;
+                        coefficientY = products.food2.price;
+                        break;
+                    case 'maxNutrition': 
+                        coefficientX = products.food1.nutrition;
+                        coefficientY = products.food2.nutrition;
+                        break;
+                }
+                
+                objectiveContent.innerHTML = `
+                    <p><b>优化目标</b>: ${objectiveName}</p>
+                    <p>目标函数: ${objective === 'minCost' ? '最小化' : '最大化'} ${coefficientX}x + ${coefficientY}y</p>
+                    <p>预算限制: ${budget}元</p>
+                    <p>热量上限: ${calorie}千卡</p>
+                    <p class="panel-tip">下一步将探索可行域的顶点</p>
+                `;
+            }
+        }
+        
+        // 完整结果面板 - 适用于任务5
+        const fullPanel = document.getElementById('result-panel-full');
+        const fullContent = document.getElementById('resultContent-full');
+        
+        if (fullPanel && fullContent) {
+            if (vertices.length === 0) {
+                fullContent.innerHTML = '<p><b>⚠️ 提示</b>: 当前约束条件下没有可行解</p>';
+                return;
+            }
+            
+            // 计算每个顶点的目标函数值
+            const vertexValues = vertices.map(v => {
+                const cost = v.x * products.food1.price + v.y * products.food2.price;
+                const calories = v.x * products.food1.calorie + v.y * products.food2.calorie;
+                const nutrition = v.x * products.food1.nutrition + v.y * products.food2.nutrition;
+                
+                return {
+                    vertex: v,
+                    cost: cost,
+                    calories: calories,
+                    nutrition: nutrition
+                };
+            });
+            
+            // 找出最优解
+            let optimal;
+            switch (objective) {
+                case 'maxCalorie':
+                    optimal = vertexValues.reduce((best, current) => 
+                        current.calories > best.calories ? current : best, vertexValues[0]);
+                    break;
+                case 'minCost':
+                    optimal = vertexValues.reduce((best, current) => 
+                        current.cost < best.cost ? current : best, vertexValues[0]);
+                    break;
+                case 'maxNutrition':
+                    optimal = vertexValues.reduce((best, current) => 
+                        current.nutrition > best.nutrition ? current : best, vertexValues[0]);
+                    break;
+            }
+            
+            // 确定目标名称
+            let objectiveName = '';
+            switch (objective) {
+                case 'maxCalorie': objectiveName = '最大化热量摄入'; break;
+                case 'minCost': objectiveName = '最小化支出成本'; break;
+                case 'maxNutrition': objectiveName = '最大化营养得分'; break;
+            }
+            
+            // 显示完整结果
+            fullContent.innerHTML = `
+                <p><b>🎯 ${objectiveName}</b></p>
+                <p>最优方案：${optimal.vertex.x.toFixed(1)}个${products.food1.name} + ${optimal.vertex.y.toFixed(1)}个${products.food2.name}</p>
+                <p>消费金额：${optimal.cost.toFixed(2)}元</p>
+                <p>获得热量：${optimal.calories.toFixed(0)}千卡</p>
+                <p>营养得分：${optimal.nutrition.toFixed(0)}分</p>
+                <p class="panel-tip">点击"开始顶点检验"查看过程</p>
+            `;
+        }
+    } catch (e) {
+        console.error("更新结果错误:", e);
+    }
+}
+
+// ============== 控制动画系统 ==============
+function startAnimation() {
+    try {
+        // 停止任何现有动画
+        stopAllAnimations();
+        
+        // 确保显示顶点
+        if (!showVertices) {
+            toggleVertex();
+        }
+        
+        // 获取参数
+        const budget = parseFloat(document.getElementById('budgetInput').value);
+        const calorie = parseFloat(document.getElementById('calorieInput').value);
+        
+        // 计算可行域顶点
+        const vertices = calculateVertices(budget, calorie);
+        
+        // 创建动画步骤
+        animationSteps = [];
+    const objType = document.getElementById('objective').value;
+    
+    // 顶点遍历阶段
+    vertices.forEach(v => {
+            if (v.x > 0 || v.y > 0) { // 排除原点
+                const cost = v.x * products.food1.price + v.y * products.food2.price;
+                const calories = v.x * products.food1.calorie + v.y * products.food2.calorie;
+                const nutrition = v.x * products.food1.nutrition + v.y * products.food2.nutrition;
+                
+                animationSteps.push({
+                    action: 'check',
+            vertex: v,
+                    cost: cost,
+                    calories: calories,
+                    nutrition: nutrition
+                });
+            }
+        });
+        
+        if (animationSteps.length === 0) {
+            alert("没有可行解，无法执行动画");
+            return;
+        }
+        
+        // 确定最优顶点
+        let bestVertex;
+        switch (objType) {
+            case 'maxCalorie':
+                bestVertex = vertices.reduce((best, current) => {
+                    const bestVal = best.x * products.food1.calorie + best.y * products.food2.calorie;
+                    const currentVal = current.x * products.food1.calorie + current.y * products.food2.calorie;
+                    return currentVal > bestVal ? current : best;
+                }, vertices[0]);
+                break;
+            case 'minCost':
+                bestVertex = vertices.reduce((best, current) => {
+                    const bestVal = best.x * products.food1.price + best.y * products.food2.price;
+                    const currentVal = current.x * products.food1.price + current.y * products.food2.price;
+                    return currentVal < bestVal ? current : best;
+                }, vertices[0]);
+                break;
+            case 'maxNutrition':
+                bestVertex = vertices.reduce((best, current) => {
+                    const bestVal = best.x * products.food1.nutrition + best.y * products.food2.nutrition;
+                    const currentVal = current.x * products.food1.nutrition + current.y * products.food2.nutrition;
+                    return currentVal > bestVal ? current : best;
+                }, vertices[0]);
+                break;
+        }
+        
+        const bestCost = bestVertex.x * products.food1.price + bestVertex.y * products.food2.price;
+        const bestCalories = bestVertex.x * products.food1.calorie + bestVertex.y * products.food2.calorie;
+        const bestNutrition = bestVertex.x * products.food1.nutrition + bestVertex.y * products.food2.nutrition;
+        
+        // 添加最终确定步骤
+        animationSteps.push({
+        action: 'final',
+            vertex: bestVertex,
+            cost: bestCost,
+            calories: bestCalories,
+            nutrition: bestNutrition
+        });
+        
+        // 启动动画
+        document.getElementById('animateBtn').disabled = true;
+        currentStep = 0;
+        animationTimer = setInterval(executeAnimationStep, 1500);
+        
+        // 立即执行第一步
+        executeAnimationStep();
+        
+    } catch (e) {
+        console.error("启动动画错误:", e);
+        alert("启动动画时出错: " + e.message);
+    }
+}
+
+// ============== 执行单个动画步骤 ==============
+function executeAnimationStep() {
+    if (currentStep >= animationSteps.length) {
+        stopAllAnimations();
+        return;
+    }
+    
+    try {
+        document.getElementById('loadingTip').style.display = 'block';
+        
+        // 获取当前步骤
+        const step = animationSteps[currentStep];
+        if (!step || !step.vertex) {
+            console.error("当前步骤数据无效");
+            stopAllAnimations();
+            return;
+        }
+        
+        // 获取参数
+        const budget = parseFloat(document.getElementById('budgetInput').value);
+        const calorie = parseFloat(document.getElementById('calorieInput').value);
+        
+        // 显示当前步骤信息
+        const resultPanel = document.getElementById('result-panel-full');
+        const resultContent = document.getElementById('resultContent-full');
+        
+        if (resultPanel && resultContent) {
+            resultPanel.style.display = 'block';
+        
+            const objective = document.getElementById('objective').value;
+            let objectiveDesc, objectiveValue;
+            
+            switch (objective) {
+                case 'maxCalorie': 
+                    objectiveDesc = '热量'; 
+                    objectiveValue = step.calories.toFixed(0) + "千卡";
+                    break;
+                case 'minCost': 
+                    objectiveDesc = '成本'; 
+                    objectiveValue = step.cost.toFixed(2) + "元";
+                    break;
+                case 'maxNutrition': 
+                    objectiveDesc = '营养得分'; 
+                    objectiveValue = step.nutrition.toFixed(0) + "分";
+                    break;
+            }
+            
+            // 显示当前检验点的信息
+            if (step.action === 'final') {
+                resultContent.innerHTML = `
+                    <p><b>🎯 找到最优解！</b></p>
+                    <p>最优方案：${step.vertex.x.toFixed(1)}个${products.food1.name} + ${step.vertex.y.toFixed(1)}个${products.food2.name}</p>
+                    <p>消费金额：${step.cost.toFixed(2)}元</p>
+                    <p>获得热量：${step.calories.toFixed(0)}千卡</p>
+                    <p>营养得分：${step.nutrition.toFixed(0)}分</p>
+                    <p>目标${objectiveDesc}：${objectiveValue}</p>
+                `;
+            } else {
+                resultContent.innerHTML = `
+                    <p><b>🔍 检验顶点</b>: (${step.vertex.x.toFixed(1)}, ${step.vertex.y.toFixed(1)})</p>
+                    <p>消费金额：${step.cost.toFixed(2)}元</p>
+                    <p>获得热量：${step.calories.toFixed(0)}千卡</p>
+                    <p>营养得分：${step.nutrition.toFixed(0)}分</p>
+                    <p>目标${objectiveDesc}：${objectiveValue}</p>
+                `;
+            }
+        }
+        
+        // 重新渲染图表来显示动画点
+        renderChart();
+        
+        // 增加步骤计数
+        currentStep++;
+        
+    } catch (e) {
+        console.error("执行动画步骤错误:", e);
+        stopAllAnimations();
+    } finally {
+        document.getElementById('loadingTip').style.display = 'none';
+    }
+}
+
+// ============== 显示/隐藏目标函数线 ==============
+function toggleObjectiveLine() {
+    showObjectiveLine = !showObjectiveLine;
+    
+    const objectiveLineBtn = document.getElementById('objectiveLineBtn');
+    if (objectiveLineBtn) {
+        objectiveLineBtn.textContent = showObjectiveLine ? '隐藏目标函数线' : '显示目标函数线';
+    }
+    
+    // 更新图表
+    renderChart();
+}
+</script>
+</body>
+</html>
+
